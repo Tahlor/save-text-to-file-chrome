@@ -71,93 +71,72 @@ function saveTextViaApp(directory, sanitizedFileName, fileContents) {
             notify('Text saved.');
         } else {
           notify('Error occured saving text via host application. Check browser console.');
-          console.log('SaveTextToFile: Native application response: ' + response);
+          console.log("SaveTextToFile: Native application response: " + response);
         }
       }
+  });
+}
+
+function get_xpath_OLD(next_function) {
+  chrome.tabs.query({active: true, lastFocusedWindow: true}, tabs => {
+    function xpath_from_url(url) {
+      if (url.includes("wsj")) {
+        BKG.console.log("WSJ");
+        return WSJ_XPATH;
+      } else if (url.includes("nationalreview")) {
+        BKG.console.log("NR");
+        return NR_XPATH;
+      } else {
+        BKG.console.log("No XPATH found for URL");
+      }
+    }
+    let url3 = tabs[0].url;
+    return next_function(xpath_from_url(url3));
   });
 }
 
 function get_xpath(next_function) {
     // This will be executed as a script, as though from console
     // This is a stupid way of doing this
-    const NR_TITLE = "//h1[@class=\'article-header__title\']//text()";
-    const NR_BODY = "//div[@class=\'article-header__subtitle\']//text() | //div[contains(@class,\'content\')]/div[contains(@class,\'content\')]/*[self::p or self::blockquote]//text()";
-    // ul/li
-    // /html/body[@class='blog-post-template-default single single-blog-post postid-998000 header--has-browser nr-not-logged-in']/div[@id='page']/div[@id='content']/div[@id='primary']/main[@id='main']/article[@id='post-998000']/div[@class='section-content--full']/div[@class='section-content--primary']/div[@class='article-content']/ul/li[1]
-    // //div[@class='sect ion-content--primary']/div[@class='article-content']/p/text()
+    const NR_TITLE = "//h1[@class=\'article-header__title\']/text()";
+
+    // The //text() is needed for hyperlinks, but it might also grab ads
+    const NR_BODY = "//div[@class=\'article-header__subtitle\']/text() | //div[contains(@class,\'content\')]/div[contains(@class,\'content\')]/*[self::p or self::blockquote]//text()"
+    // *[self::em|self::p| self::a|.]/text()
+    // const NR_BODY = "//div[@class=\'article-header__subtitle\']/text() | //div[@class=\'section-content--primary\']/div[@class=\'article-content\']/*[self::p or self::blockquote]/text()";
+    // //div[@class='section-content--primary']/div[@class='article-content']/p/text()
 
     const WSJ_TITLE = "//h1[@class=\'wsj-article-headline\']/text()";
     //const WSJ_BODY = "//body[@id=\'article_body\']//div[@id=\'article_sector\']//*[not(self::div[@class=\'media-object-rich-text\'])]//p//text()";
-    //const WSJ_BODY1 = "//body[@id=\'article_body\']//div[@id=\'article_sector\']//div[contains(@class,\'article-content\')]/p[position()<last()]//text()";
-    const WSJ_BODY1 = '//div[contains(@class,\'article-content\')]/p[position()<last()]//text()';
+    const WSJ_BODY = "//body[@id=\'article_body\']//div[@id=\'article_sector\']//div[contains(@class,\'article-content\')]/p/text()|//body[@id=\'article_body\']//div[@id=\'article_sector\']//div[contains(@class,\'article-content\')]//div[@class=\'paywall\']/p// text()";
 
-    // Need //text() otherwise italicized letters to editor are ignored - example -
-    const WSJ_BODY2 = "//body[@id=\'article_body\']//div[@id=\'article_sector\']//div[contains(@class,\'article-content\')]//div[@class=\'paywall\']/p//text()";
-    const WSJ_BODY = WSJ_BODY1 + "|" + WSJ_BODY2;
-    const generic = "//*[self::div[contains(@class,'article')] or self::article]//*[self::p or self::blockquote]//text()";
     var url3 = document.URL;
     function xpath_from_url(url) {
-      console.log(url);
-      if (url.includes('wsj')) {
-        console.log('WSJ');
+      if (url.includes("wsj")) {
+        console.log("WSJ");
         return [WSJ_TITLE, WSJ_BODY];
-      } else if (url.includes('nationalreview')) {
-        console.log('NR');
+      } else if (url.includes("nationalreview")) {
+        console.log("NR2");
         return [NR_TITLE, NR_BODY];
-      } else if (url === 'about:blank') {
-        console.log('Blank page, ignoring');
       } else {
-        console.log('No XPATH found for URL, saving whole page');
-        return [null,generic];
+        console.log("No XPATH found for URL");
       }
     }
     var xpath_array = xpath_from_url(url3);
     if (xpath_array) {
       return next_function(...xpath_array);
     }
-  }
+  };
 
 function getElementByXpath(xpath_title, xpath_body) {
-  //var text = "THIS IS TEXT";
-  var title; var text;
-  var extension = 'txt';
-  var node;
-  if (xpath_body) {
-    text = '';
-    var body = document.evaluate(xpath_body, document, null, XPathResult.ANY_TYPE, null);
-    while (node = body.iterateNext()) {
-      text += node.data + '\n';
-    }
-    console.log('found xpath; first 20 chars:', text.substring(0, 20), xpath_body);
+  var text=''; var node;
+  console.log(xpath_title, xpath_body);
+  var body=document.evaluate(xpath_body, document, null, XPathResult.ANY_TYPE, null);
+  while(node=body.iterateNext()) {
+    text += node.data + "\n";
   }
-  if  ( ! text ) {
-    text=document.documentElement.outerHTML;
-    extension = 'html';
-    console.log('LOGGING ALL HTML--no matching XPATH');
-  }
-  title = '';
-  try {
-    if (xpath_title) {
-      // var t1=document.evaluate(xpath_title, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-      // title=t1.textContent;
-      // console.log('F', xpath_title, document, XPathResult.FIRST_ORDERED_NODE_TYPE);
-      // console.log('TITLE', t1);
-      // console.log('mm', t1.textContent);
-
-      title = '';
-      var title_nodes = document.evaluate(xpath_title, document, null, XPathResult.ANY_TYPE, null);
-      while (node = title_nodes.iterateNext()) {
-         title += node.data + '\n';
-      }
-      console.log('TITLE:', title);
-    }
-
-    } catch (error) {
-      console.error(error);
-    }
-
-  console.log('DONE; Title:',title);
- return [title + '. \n' + text, title, extension];
+ var title=document.evaluate(xpath_title, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
+ return [title + '. \n' + text, title];
 }
 
 function saveTextToFile(info) {
@@ -176,37 +155,17 @@ function saveTextToFile(info) {
                  .replace(/[\u201C\u201D]/g, '"')
                  .replace(/[^\x00-\x7F]/g, ' ');
       //var text = results[0][0].replace(/[\u{0080}-\u{FFFF}]/gu,'');
-      // STRIP LINE ENDINGS FROM TITLE
-      var title = results[0][1].replace(/(?:\r\n|\r|\n)/g, '');
-      var extension = results[0][2];
 
-      // SEND A MESSAGE!!!!! not working?
-      // chrome.runtime.sendNativeMessage(HOST_APPLICATION_NAME, testConnectivityPayload, function(response) {
-      //         console.log("T", title, text);
-      // });
-
+      var title = results[0][1];
       createFileContents(text, function(fileContents) {
         var blob = new Blob([fileContents], {
           type: 'text/plain'
         });
         var url = URL.createObjectURL(blob);
         createFileName(function(fileName) {
-          var sanitizedFileName;
-          if (title) {
-            sanitizedFileName = sanitizeFileName(title)+'_ARTICLE.' + extension;
-          } else {
-            sanitizedFileName = sanitizeFileName(fileName) + 'ARTICLE.' + extension;
-          }
-
-          var new_url = 'https://students.cs.byu.edu/~tarch/articles/' + encodeURIComponent(sanitizedFileName);
-
-          // chrome.runtime.sendNativeMessage(HOST_APPLICATION_NAME, testConnectivityPayload, function(response) {
-          //     console.log('new url', new_url);
-          // });
-
-          // SLEEP
-          //await new Promise(r => setTimeout(r, 2000));
-
+          //var sanitizedFileName = sanitizeFileName(fileName);
+          var sanitizedFileName = sanitizeFileName(title)+"_ARTICLE.txt";
+          var new_url = "https://students.cs.byu.edu/~tarch/articles/" + encodeURIComponent(sanitizedFileName);
           chrome.tabs.update({url: new_url});
           chrome.runtime.sendNativeMessage(HOST_APPLICATION_NAME, testConnectivityPayload, function(response) {
             if (chrome.runtime.lastError) {
@@ -263,7 +222,7 @@ function createFileName(callback) {
   var fileName = '';
   var pageTitle = '';
   var date = _getDate();
-  var extension = ''; //_getExtension();
+  var extension = _getExtension();
   var customText = fileNamePrefix;
   _getPageTitleToFileName(function() {
     if (fileNameComponentOrder === DATE_CUSTOM_TITLE) {
@@ -369,7 +328,7 @@ function startDownloadOfTextToFile(url, fileName) {
 chrome.contextMenus.create({
   id: MENU_ITEM_ID,
   title: EXTENSION_TITLE,
-  //contexts: ['selection'] // only available when selection is made
+  contexts: ['selection']
 });
 
 chrome.contextMenus.onClicked.addListener(function(info) {

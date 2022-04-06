@@ -4,7 +4,6 @@
   "path": "/path/to/savetexttofile.py",
   "type": "stdio",
   "allowed_origins": [
-    "chrome-extension://mkepenkbhepjelljcfiooignmpfgochi/",
-    "chrome-extension://llmamdcaffejjeanacabjibpkpecngcj/"
+    "chrome-extension://mkepenkbhepjelljcfiooignmpfgochi/"
   ]
 }

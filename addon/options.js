@@ -30,6 +30,7 @@ function saveOptions() {
     templateText: document.getElementById('templateText').value,
     positionOfTemplateText: document.getElementById('positionOfTemplateText').value,
     directory: document.getElementById('directory').value,
+    // xpath: document.getElementById('xpath').value,
     directorySelectionDialog: document.getElementById('directorySelectionDialog').checked,
     notifications: document.getElementById('notifications').checked,
     conflictAction: document.getElementById('conflictAction').value
@@ -173,6 +174,7 @@ function directoryChanged() {
     document.getElementById('save').disabled = false;
   }
 }
+
 
 document.addEventListener('DOMContentLoaded', restoreOptions);
 document.getElementById('save').addEventListener('click', saveOptions);
