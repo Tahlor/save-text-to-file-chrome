@@ -49,6 +49,64 @@ var conflictAction;
 var testConnectivityPayload = {
   action: TEST_CONNECTIVITY_ACTION
 };
+var downloaded_files = [];
+
+//pubcast-files.remixd.com/audios
+//var pattern = '*//pubcast-files.remixd.com/audios/';
+var pattern = "*://*.youtube.com/"
+var pattern2 = "*://*.pubcast-files.remixd.com/audios/*";
+var pattern3 = "*://*.remixd.com/audios/*";
+var pattern4 = "*://*.remixd.com/*";
+var pattern5 = "*://*.nationalreview.com/";
+var pattern6 = "<all_urls>";
+
+chrome.webRequest.onBeforeRequest.addListener(
+download,
+{urls: [pattern2]}
+);
+
+function logURL(requestDetails) {
+  console.log('CAUGHT Loading: ' + requestDetails);
+  BKG.console.log('CAUGHT Loading: ' + requestDetails);
+}
+
+// Get actual date
+function get_date() {
+    var dateObj = new Date();
+    var month = dateObj.getUTCMonth() + 1; //months from 1-12
+    var day = dateObj.getUTCDate();
+    var year = dateObj.getUTCFullYear();
+    return year + "_" + month + "_" + day;
+}
+
+// Get NR date -- NOT SURE HOW TO GET THE ACTUAL DOCUMENT!!
+// NOT WORKING
+function get_nr_date() {
+    eval(document.querySelector('#nr-headless-js-after').innerHTML);
+    var data = nr.headless.preloadedData;
+    var key = Object.keys(data)[0];
+    var main = data[key].body.queried_object;
+    return main.date.slice(0,10);
+}
+
+function download(input) {
+  var dataurl = input.url;
+  //logURL(dataurl);
+  if (!downloaded_files.includes(dataurl)) {
+      BKG.console.log("downloading: "+dataurl);
+      var pattern = "(www.nationalreview.com_[0-9_]*)(.*)\\?"
+      var filename = "NR_AUDIO_"+get_date()+"_"+dataurl.match(pattern)[2]+".mp3";
+      BKG.console.log("saving: "+filename);
+      //BKG.console.log(get_nr_date());
+      const link = document.createElement("a");
+      var header = 'data:audio/mp3,'; // optional to include header, think it enables renaming though
+      link.href = header+dataurl;
+      link.download = filename;
+      link.click();
+      downloaded_files.push(dataurl);
+  }
+
+}
 
 function saveTextViaApp(directory, sanitizedFileName, fileContents) {
   var payload = {
@@ -175,12 +233,27 @@ function nationalreview() {
     var author_desc = main.authors[0].description;
     var wrapping = '<head><style>body {max-width: 600px;  font-size: 150%}</style></head>';
     text = wrapping + p(title) + p(subtitle) + p('by ' + author) + text + p(" [END] ") + p(author_desc);
-    document.open('text/html');
-    document.write(text);
-    window.scrollTo(0,0);
-    // AUDIO
-    document.querySelector("button.listen-to-article.button").click();
-    document.querySelector('#playerPlayPause').click();
+
+    // AUDIO - open audio tab
+    //document.querySelector("button.listen-to-article.button").click();
+
+//    setTimeout(function(){
+//        console.log("DONE WAITING!");
+//        // selector doesn't work on dynamically loaded content!
+//
+//        // Start playing content -- neither of these work with dynamic content
+//        document.getElementsByClassName('control-play-pause')[0].click();
+//        document.querySelector('#playerPlayPause').click()
+//
+//        // Reload current page
+//        document.open('text/html');
+//        document.write(text);
+//        window.scrollTo(0,0);
+//    }, 50);
+
+        document.open('text/html');
+        document.write(text);
+        window.scrollTo(0,0);
 
     // DevTools -> Network -> (look for media) -> Open in new tab
     //https://pubcast-files.remixd.com/audios/https___www.nationalreview.com_2022_05_no-canada-how-musks-twitter-should-react-if-trudeaus-censorship-plans-succeed?Expires=1652465002&KeyName=pubcast-files-cdn&Signature=z6cpYEFh1TFwI8mdNl0zosq-OlU=
@@ -188,19 +261,7 @@ function nationalreview() {
 }
 
 
-function logURL(requestDetails) {
-  console.log('Loading: ' + requestDetails.url);
-}
-
 function saveTextToFile(info) {
-  //var pattern = "pubcast-files\.remixd\.com\/audios";
-  var pattern = "pubcast";
-  chrome.webRequest.onBeforeRequest.addListener(
-  logURL,
-  {urls: [pattern]}
-  );
-
-
    // MAIN FUNCTION
    chrome.tabs.query({active: true, lastFocusedWindow: true}, tabs => {
     let url = tabs[0].url;
@@ -249,7 +310,7 @@ function save_and_load(results, load=true, xpath_and_clean=true) {
         var title = results[0][1];
         var subtitle = results[0][2];
         var extension = "html";
-        console.log("TAYLOR", title,subtitle,results);
+        //console.log("TAYLOR", title,subtitle,results);
     }
       createFileContents(text, function(fileContents) {
         var blob = new Blob([fileContents], {
@@ -263,7 +324,7 @@ function save_and_load(results, load=true, xpath_and_clean=true) {
   }
 
 function part2(sanitizedFileName, fileContents, load, url) {
-          console.log(sanitizedFileName, load);
+          console.log(sanitizedFileName, load, fileContents);
           var new_url = 'https://students.cs.byu.edu/~tarch/articles/' + encodeURIComponent(sanitizedFileName);
 
           // Save the thing
@@ -436,6 +497,7 @@ chrome.contextMenus.create({
   //contexts: ['selection'] // only available when selection is made
 });
 
+// Perform action when icon clicked
 chrome.contextMenus.onClicked.addListener(function(info) {
   if (info.menuItemId === MENU_ITEM_ID) {
     saveTextToFile(info);
