@@ -178,11 +178,30 @@ function nationalreview() {
     document.open('text/html');
     document.write(text);
     window.scrollTo(0,0);
+    // AUDIO
+    document.querySelector("button.listen-to-article.button").click();
+    document.querySelector('#playerPlayPause').click();
+
+    // DevTools -> Network -> (look for media) -> Open in new tab
+    //https://pubcast-files.remixd.com/audios/https___www.nationalreview.com_2022_05_no-canada-how-musks-twitter-should-react-if-trudeaus-censorship-plans-succeed?Expires=1652465002&KeyName=pubcast-files-cdn&Signature=z6cpYEFh1TFwI8mdNl0zosq-OlU=
     return [text, title, subtitle];
 }
 
+
+function logURL(requestDetails) {
+  console.log('Loading: ' + requestDetails.url);
+}
+
 function saveTextToFile(info) {
-  // MAIN FUNCTION
+  //var pattern = "pubcast-files\.remixd\.com\/audios";
+  var pattern = "pubcast";
+  chrome.webRequest.onBeforeRequest.addListener(
+  logURL,
+  {urls: [pattern]}
+  );
+
+
+   // MAIN FUNCTION
    chrome.tabs.query({active: true, lastFocusedWindow: true}, tabs => {
     let url = tabs[0].url;
     if (url.includes('nationalreview')) {

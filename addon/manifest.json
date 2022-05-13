@@ -3,7 +3,7 @@
   "description": "Save article to a file on your computer.",
   "version": "2.2.1",
   "permissions": ["contextMenus", "downloads", "storage", "notifications", "activeTab", "nativeMessaging"],
-  "background": {"scripts": ["backgroundScript.js"], "persistent": false},
+  "background": {"scripts": ["backgroundScript.js"], "persistent": true},
   "manifest_version": 2,
   "icons": {
     "64": "images/ico.png"
