@@ -85,9 +85,6 @@ function get_xpath(next_function) {
     // ul/li
     // /html/body[@class='blog-post-template-default single single-blog-post postid-998000 header--has-browser nr-not-logged-in']/div[@id='page']/div[@id='content']/div[@id='primary']/main[@id='main']/article[@id='post-998000']/div[@class='section-content--full']/div[@class='section-content--primary']/div[@class='article-content']/ul/li[1]
     // //div[@class='sect ion-content--primary']/div[@class='article-content']/p/text()
-    const NR = '//*[@id="nr-headless-js-after"]/text()'
-
-
     const WSJ_TITLE = "//h1[@class=\'wsj-article-headline\']/text()";
     //const WSJ_BODY = "//body[@id=\'article_body\']//div[@id=\'article_sector\']//*[not(self::div[@class=\'media-object-rich-text\'])]//p//text()";
     //const WSJ_BODY1 = "//body[@id=\'article_body\']//div[@id=\'article_sector\']//div[contains(@class,\'article-content\')]/p[position()<last()]//text()";
@@ -162,36 +159,30 @@ function getElementByXpath(xpath_title, xpath_body) {
  return [title + '. \n' + text, title, extension];
 }
 
-function ugh(next_function) {
-    var xpath = ['//*[@id="nr-headless-js-after"]/text()', "none"];
-    return next_function(...xpath);
-}
-
-
-function printit(next_function) {
-    return "PRINT";
-}
-
-function ugh2() {
-    var body2 = document.querySelector("#nr-headless-js-after").innerHTML;
-    //return body2;
-    document.body.appendChild()
-    return document.nr.headless.preloadedData;
-}
-
 function nationalreview() {
-    var nr = {"headless":{"preloadedData":{}}}
-    eval(document.querySelector("#nr-headless-js-after").innerHTML);
+    function p(i) {
+      return '<p>'+i+'<\p>';
+    }
+    var nr = {'headless':{'preloadedData':{}}};
+    eval(document.querySelector('#nr-headless-js-after').innerHTML);
     var data = nr.headless.preloadedData;
     var key = Object.keys(data)[0];
-    var text = data[key].body.queried_object.content.rendered.toString();
-    var wrapping = "<head><style>body {max-width: 600px;  font-size: 150%}</style></head>"
-    text = wrapping + text;
-    javascript:document.open('text/html');document.write(text);
-    return text;
+    var main = data[key].body.queried_object;
+    var text = main.content.rendered.toString();
+    var title = main.title.rendered.toString();
+    var subtitle = main.subtitle.toString();
+    var author = main.authors[0].display_name;
+    var author_desc = main.authors[0].description;
+    var wrapping = '<head><style>body {max-width: 600px;  font-size: 150%}</style></head>';
+    text = wrapping + p(title) + p(subtitle) + p('by ' + author) + text + p(" [END] ") + p(author_desc);
+    document.open('text/html');
+    document.write(text);
+    window.scrollTo(0,0);
+    return [text, title, subtitle];
 }
 
 function saveTextToFile(info) {
+  // MAIN FUNCTION
    chrome.tabs.query({active: true, lastFocusedWindow: true}, tabs => {
     let url = tabs[0].url;
     if (url.includes('nationalreview')) {
@@ -210,10 +201,10 @@ function saveTextToFile(info) {
   }, save_and_load);
   }}
   )
-  }
+}
 
 function save_and_load(results, load=true, xpath_and_clean=true) {
-    console.log("HERE", "HERE", results)
+    console.log(results);
     if (results[0] && xpath_and_clean) {
       // Clean text
       var text = results[0][0];
@@ -235,9 +226,11 @@ function save_and_load(results, load=true, xpath_and_clean=true) {
       // });
     }
     else {
-        var text = results[0];
-        var title = "";
+        var text = results[0][0];
+        var title = results[0][1];
+        var subtitle = results[0][2];
         var extension = "html";
+        console.log("TAYLOR", title,subtitle,results);
     }
       createFileContents(text, function(fileContents) {
         var blob = new Blob([fileContents], {
@@ -246,12 +239,12 @@ function save_and_load(results, load=true, xpath_and_clean=true) {
         var url = URL.createObjectURL(blob);
         var fileName = '';
         createFileName(title, extension, function(the_input) {fileName = the_input;});
-        part2(fileName, fileContents, load=load);
+        part2(fileName, fileContents, load=load, url=url);
       });
   }
 
-function part2(sanitizedFileName, fileContents, load) {
-          console.log(sanitizedFileName, load)
+function part2(sanitizedFileName, fileContents, load, url) {
+          console.log(sanitizedFileName, load);
           var new_url = 'https://students.cs.byu.edu/~tarch/articles/' + encodeURIComponent(sanitizedFileName);
 
           // Save the thing
