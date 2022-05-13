@@ -85,6 +85,8 @@ function get_xpath(next_function) {
     // ul/li
     // /html/body[@class='blog-post-template-default single single-blog-post postid-998000 header--has-browser nr-not-logged-in']/div[@id='page']/div[@id='content']/div[@id='primary']/main[@id='main']/article[@id='post-998000']/div[@class='section-content--full']/div[@class='section-content--primary']/div[@class='article-content']/ul/li[1]
     // //div[@class='sect ion-content--primary']/div[@class='article-content']/p/text()
+    const NR = '//*[@id="nr-headless-js-after"]/text()'
+
 
     const WSJ_TITLE = "//h1[@class=\'wsj-article-headline\']/text()";
     //const WSJ_BODY = "//body[@id=\'article_body\']//div[@id=\'article_sector\']//*[not(self::div[@class=\'media-object-rich-text\'])]//p//text()";
@@ -160,16 +162,59 @@ function getElementByXpath(xpath_title, xpath_body) {
  return [title + '. \n' + text, title, extension];
 }
 
-function saveTextToFile(info) {
+function ugh(next_function) {
+    var xpath = ['//*[@id="nr-headless-js-after"]/text()', "none"];
+    return next_function(...xpath);
+}
 
-  chrome.tabs.executeScript({
+
+function printit(next_function) {
+    return "PRINT";
+}
+
+function ugh2() {
+    var body2 = document.querySelector("#nr-headless-js-after").innerHTML;
+    //return body2;
+    document.body.appendChild()
+    return document.nr.headless.preloadedData;
+}
+
+function nationalreview() {
+    var nr = {"headless":{"preloadedData":{}}}
+    eval(document.querySelector("#nr-headless-js-after").innerHTML);
+    var data = nr.headless.preloadedData;
+    var key = Object.keys(data)[0];
+    var text = data[key].body.queried_object.content.rendered.toString();
+    var wrapping = "<head><style>body {max-width: 600px;  font-size: 150%}</style></head>"
+    text = wrapping + text;
+    javascript:document.open('text/html');document.write(text);
+    return text;
+}
+
+function saveTextToFile(info) {
+   chrome.tabs.query({active: true, lastFocusedWindow: true}, tabs => {
+    let url = tabs[0].url;
+    if (url.includes('nationalreview')) {
+      chrome.tabs.executeScript({
+      code: '('+nationalreview.toString() + ')()',
+      }, function(x) {save_and_load(x, false, false)});
+
+    }
+    else {
+    chrome.tabs.executeScript({
     code: '(' + get_xpath.toString() + ')(' + getElementByXpath.toString() + ')',
     //code: 'XPATH="' + get_xpath() + '"; (' + getElementByXpath.toString() + ')("'+get_xpath()+'")',
     //code: get_xpath().toString() + ')(,
     allFrames: true,
     matchAboutBlank: true
-  }, function (results) {
-    if (results[0]) {
+  }, save_and_load);
+  }}
+  )
+  }
+
+function save_and_load(results, load=true, xpath_and_clean=true) {
+    console.log("HERE", "HERE", results)
+    if (results[0] && xpath_and_clean) {
       // Clean text
       var text = results[0][0];
       text = text.replace(/[\u2018\u2019]/g, "'")
@@ -180,34 +225,36 @@ function saveTextToFile(info) {
       var title = results[0][1].replace(/(?:\r\n|\r|\n)/g, '');
       var extension = results[0][2];
 
-      // SEND A MESSAGE!!!!! not working?
+      // SEND A MESSAGE!!!!!
+      //THIS IS ONLY VISIBLE FROM THE EXTENSION'S "BACKGROUND" page, FROM THE EXTENSION LIST PAGE
+      // MAKE SURE YOU HAVE MESSAGES SELECTED
+      // BKG.console.log("THIS MESSAGE");
+
       // chrome.runtime.sendNativeMessage(HOST_APPLICATION_NAME, testConnectivityPayload, function(response) {
       //         console.log("T", title, text);
       // });
-
+    }
+    else {
+        var text = results[0];
+        var title = "";
+        var extension = "html";
+    }
       createFileContents(text, function(fileContents) {
         var blob = new Blob([fileContents], {
           type: 'text/plain'
         });
         var url = URL.createObjectURL(blob);
-        createFileName(function(fileName) {
-          var sanitizedFileName;
-          if (title) {
-            sanitizedFileName = sanitizeFileName(title)+'_ARTICLE.' + extension;
-          } else {
-            sanitizedFileName = sanitizeFileName(fileName) + 'ARTICLE.' + extension;
-          }
+        var fileName = '';
+        createFileName(title, extension, function(the_input) {fileName = the_input;});
+        part2(fileName, fileContents, load=load);
+      });
+  }
 
+function part2(sanitizedFileName, fileContents, load) {
+          console.log(sanitizedFileName, load)
           var new_url = 'https://students.cs.byu.edu/~tarch/articles/' + encodeURIComponent(sanitizedFileName);
 
-          // chrome.runtime.sendNativeMessage(HOST_APPLICATION_NAME, testConnectivityPayload, function(response) {
-          //     console.log('new url', new_url);
-          // });
-
-          // SLEEP
-          //await new Promise(r => setTimeout(r, 2000));
-
-          chrome.tabs.update({url: new_url});
+          // Save the thing
           chrome.runtime.sendNativeMessage(HOST_APPLICATION_NAME, testConnectivityPayload, function(response) {
             if (chrome.runtime.lastError) {
               console.log('SaveTextToFile: Error communicating between the native application and web extension.');
@@ -219,12 +266,13 @@ function saveTextToFile(info) {
                 saveTextViaApp(directory, sanitizedFileName, fileContents);
               }
             }
-          });
-        });
-      });
-    }
-  });
-}
+          }
+          )
+          // Load the thing
+          if (load) {
+              chrome.tabs.update({url: new_url});
+          };
+        }
 
 function sanitizeFileName(fileName) {
   fileName = fileName.replace(/(?:\r\n|\r|\n)/g, '');
@@ -259,11 +307,10 @@ function createFileContents(selectionText, callback) {
   });
 }
 
-function createFileName(callback) {
+function createFileName(title, extension, callback) {
   var fileName = '';
   var pageTitle = '';
   var date = _getDate();
-  var extension = ''; //_getExtension();
   var customText = fileNamePrefix;
   _getPageTitleToFileName(function() {
     if (fileNameComponentOrder === DATE_CUSTOM_TITLE) {
@@ -282,8 +329,13 @@ function createFileName(callback) {
     if (fileName === '') {
       notify('Error: Filename cannot be empty, please review preferences.');
     } else {
-      fileName += extension;
-      callback(fileName);
+          if (title) {
+            fileName = sanitizeFileName(title)+'_ARTICLE.' + extension;
+          } else {
+            fileName = sanitizeFileName(fileName) + 'ARTICLE.' + extension;
+          }
+          console.log(fileName, extension, title, 'here');
+          callback(fileName);
     }
   });
 

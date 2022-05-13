@@ -7,4 +7,4 @@ mkdir $destination -p
 
 sshfs tarch@schizo.cs.byu.edu:/users/grads/tarch /media/BYUCS/
 
-find $source -maxdepth 1 -mtime +14 -type f -exec mv "{}" $destination \;
+find $source -maxdepth 1 -mtime +90 -type f -exec mv "{}" $destination \;
