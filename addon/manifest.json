@@ -4,6 +4,9 @@
   "version": "2.2.1",
   "permissions": ["contextMenus", "downloads", "storage", "notifications", "activeTab", "nativeMessaging", "webRequest", "*://*.nationalreview.com/", "*://*.pubcast-files.remixd.com/audios/*"],
   "background": {"scripts": ["backgroundScript.js"], "persistent": true},
+  "browser_action": {
+      "default_title": "Run"
+    },
   "manifest_version": 2,
   "icons": {
     "64": "images/ico.png"

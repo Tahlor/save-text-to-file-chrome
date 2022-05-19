@@ -497,6 +497,23 @@ chrome.contextMenus.create({
   //contexts: ['selection'] // only available when selection is made
 });
 
+//chrome.contextMenus.create({
+//      title: "Example Alert",
+//      contexts: ["browser_action"],
+//      onclick: function() {
+//        alert('My Alert');
+//      }
+//});
+
+chrome.contextMenus.create({
+      title: "RUN",
+      contexts: ["browser_action"],
+      onclick: function(info) {
+        saveTextToFile(info);
+      }
+});
+
+
 // Perform action when icon clicked
 chrome.contextMenus.onClicked.addListener(function(info) {
   if (info.menuItemId === MENU_ITEM_ID) {
