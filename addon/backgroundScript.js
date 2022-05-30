@@ -505,16 +505,22 @@ chrome.contextMenus.create({
 //      }
 //});
 
+
+// Right click-menu
 chrome.contextMenus.create({
-      title: "RUN",
+      title: "RUN NR",
       contexts: ["browser_action"],
       onclick: function(info) {
         saveTextToFile(info);
       }
 });
 
+// Run when left clicked
+chrome.browserAction.onClicked.addListener(function(info) {
+        saveTextToFile(info);
+      });
 
-// Perform action when icon clicked
+// Perform action when icon clicked on RIGHT-CLICK-MENU on PAGE
 chrome.contextMenus.onClicked.addListener(function(info) {
   if (info.menuItemId === MENU_ITEM_ID) {
     saveTextToFile(info);
