@@ -261,10 +261,11 @@ function nationalreview() {
 }
 
 
-function saveTextToFile(info) {
+function saveTextToFile(tab) {
    // MAIN FUNCTION
    chrome.tabs.query({active: true, lastFocusedWindow: true}, tabs => {
-    let url = tabs[0].url;
+    let url = tab.url;
+    //let url = tabs[0].url;
     if (url.includes('nationalreview')) {
       chrome.tabs.executeScript({
       code: '('+nationalreview.toString() + ')()',
@@ -516,8 +517,8 @@ chrome.contextMenus.create({
 });
 
 // Run when left clicked
-chrome.browserAction.onClicked.addListener(function(info) {
-        saveTextToFile(info);
+chrome.browserAction.onClicked.addListener(function(tab) {
+        saveTextToFile(tab);
       });
 
 // Perform action when icon clicked on RIGHT-CLICK-MENU on PAGE
