@@ -99,7 +99,8 @@ function download(input) {
       BKG.console.log("saving: "+filename);
       //BKG.console.log(get_nr_date());
       const link = document.createElement("a");
-      var header = 'data:audio/mp3,'; // optional to include header, think it enables renaming though
+      //var header = 'data:audio/mp3,'; // optional to include header, think it enables renaming though
+      var header = '';
       link.href = header+dataurl;
       link.download = filename;
       link.click();
